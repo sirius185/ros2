@@ -1,0 +1,20 @@
+[
+  {
+    "path": "圆弧",
+    "ambient_c": 25.0,
+    "reached": true,
+    "duration_s": 21.07,
+    "cross_track_rmse_m": 0.0285,
+    "maximum_error_m": 0.0429,
+    "final_distance_m": 0.1989
+  },
+  {
+    "path": "S形",
+    "ambient_c": 25.0,
+    "reached": true,
+    "duration_s": 19.64,
+    "cross_track_rmse_m": 0.048,
+    "maximum_error_m": 0.1225,
+    "final_distance_m": 0.1992
+  }
+]

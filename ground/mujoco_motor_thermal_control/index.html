@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh_CN">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        <link rel="canonical" href="https://sirius185.github.io/ros2/ground/mujoco_motor_thermal_control/">
+        <link rel="shortcut icon" href="../../img/favicon.ico">
+        <title>研究报告 - MuJoCo 差速小车驱动电机温升预测与降额控制</title>
+        <link href="../../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="../..">MuJoCo 差速小车驱动电机温升预测与降额控制</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href="../.." class="nav-link">首页</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">研究报告</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../.." class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/sirius185/ros2/edit/master/docs/ground/mujoco_motor_thermal_control.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#mujoco" class="nav-link">MuJoCo 差速小车驱动电机温升预测与降额控制</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#_1" class="nav-link">研究目标</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_2" class="nav-link">数学模型</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_3" class="nav-link">神经网络预测</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_4" class="nav-link">控制策略</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_5" class="nav-link">给定路径的神经网络控制</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_6" class="nav-link">算法流程与核心源码</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_7" class="nav-link">仿真步骤</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_9" class="nav-link">性能结果</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#_10" class="nav-link">源码结构</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#docker" class="nav-link">Docker 环境</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="mujoco">MuJoCo 差速小车驱动电机温升预测与降额控制<a class="headerlink" href="#mujoco" title="Permanent link">&para;</a></h1>
+<p>Word 格式：<a href="../mujoco_motor_thermal_control.docx">下载报告</a></p>
+<h2 id="_1">研究目标<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>本实验在 MuJoCo 差速小车上建立左右轮驱动电机的集总温升模型，利用电流、绕组温度、车速和环境温度预测 5 秒后的电机温度，再将预测结果用于速度降额。重点观察直行、转弯和高环境温度下的电机热变化，以及降额带来的速度变化。</p>
+<p>选取传感器感知与给定轨迹控制任务：带噪声的温度、电流和车速观测用于温升预测，航向神经网络直接输出角速度指令，完成圆弧和 S 形路径跟踪。两路网络分别完成热状态预测与运动控制。</p>
+<p>仿真模型包含底盘、左右轮、地面接触和电机驱动关节。温度、电流和车体状态由每个仿真时间步记录。固定随机种子控制测量噪声，保证场景可重复。</p>
+<p><img alt="MuJoCo 差速小车运行截图" src="../../img/ground/motor_thermal_control/mujoco_demo.png" /></p>
+<p><img alt="MuJoCo 差速小车运行过程" src="../../img/ground/motor_thermal_control/mujoco_demo.gif" /></p>
+<h2 id="_2">数学模型<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>电机电流根据驱动转矩估算：</p>
+<div class="arithmatex">\[
+I_t = \frac{|\tau_t|}{k_\tau} + I_0
+\]</div>
+<p>绕组温度采用集总热容模型。车速增大时增强表面对流散热：</p>
+<div class="arithmatex">\[
+C_{th}\frac{dT}{dt}=I_t^2R_w-\left(h_0+h_v|v_t|\right)(T-T_a)
+\]</div>
+<p>其中 <span class="arithmatex">\(C_{th}\)</span> 为等效热容，<span class="arithmatex">\(R_w\)</span> 为绕组电阻，<span class="arithmatex">\(h_0\)</span> 为静止散热系数，<span class="arithmatex">\(h_v\)</span> 为速度相关散热系数，<span class="arithmatex">\(T_a\)</span> 为环境温度。离散仿真使用显式欧拉更新：</p>
+<div class="arithmatex">\[
+T_{t+1}=T_t+\frac{I_t^2R_w-\left(h_0+h_v|v_t|\right)(T_t-T_a)}{C_{th}}\Delta t
+\]</div>
+<p>在预测时域内假设电流、车速与环境温度保持不变，解析温度为：</p>
+<div class="arithmatex">\[
+T(t+H)=T_{eq}+\left(T(t)-T_{eq}\right)\exp\left(-\frac{h(v)H}{C_{th}}\right)
+\]</div>
+<div class="arithmatex">\[
+h(v)=h_0+h_v|v|,\qquad T_{eq}=T_a+\frac{I^2R_w}{h(v)}
+\]</div>
+<h2 id="_3">神经网络预测<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>预测器为 <code>4-24-1</code> 多层感知机 (MLP)，输入依次为绕组温度、电流、车速和环境温度。输入按训练集均值和标准差归一化，隐藏层使用 ReLU，输出未来 5 秒温度；训练目标为上式解析温度。损失函数为：</p>
+<div class="arithmatex">\[
+\mathcal{L}_{MSE}=\frac{1}{N}\sum_{i=1}^{N}(\hat{T}_{i,t+5}-T_{i,t+5})^2
+\]</div>
+<p>固定种子 7 生成 4,096 条开发样本，随机划分 3,276 条训练样本和 820 条验证样本，训练 500 轮。种子 8 的 1,024 条独立测试样本 RMSE 为 <strong>0.329 °C</strong>。模型参数保存为 JSON，训练记录、训练曲线和独立误差分布均保存在仓库内。</p>
+<p><img alt="温升预测网络训练损失曲线" src="../../img/ground/motor_thermal_control/training_loss.png" /></p>
+<p><img alt="预测温度与目标温度及误差分布" src="../../img/ground/motor_thermal_control/prediction_error.png" /></p>
+<h2 id="_4">控制策略<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>ROS 2 节点读取 <code>/cmd_vel</code>，将最近一次电机温度、电流和车速送入预测器。当未来温度达到 35 °C 时进入降额状态，目标温度低于 33 °C 后解除降额。速度缩放比例为：</p>
+<div class="arithmatex">\[
+\alpha=\operatorname{clip}\left(1-0.035(\hat{T}_{t+5}-33),\ 0.25,\ 1\right)
+\]</div>
+<div class="arithmatex">\[
+v_{cmd}=\alpha v_{ref},\qquad \omega_{cmd}=\alpha\omega_{ref}
+\]</div>
+<p>温度上限和复位温度分离形成迟滞区间，减少阈值附近反复切换。节点发布左右电机温度、未来温度估计、速度缩放比例及限幅后的速度指令。</p>
+<h2 id="_5">给定路径的神经网络控制<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>以距离当前位置最近的参考路径点为进度，向前选取 12 个离散点作为前视目标。航向误差为目标方向与当前航向之差，并归一化到 <span class="arithmatex">\([-\pi,\pi]\)</span>。网络输入为：</p>
+<div class="arithmatex">\[
+z=[\sin(e_\psi),\cos(e_\psi),d,v] ,\qquad \omega_{NN}=W_2\operatorname{ReLU}(W_1\bar z+b_1)+b_2
+\]</div>
+<p>网络使用 <code>4-24-1</code> 结构，控制输出是角速度。训练目标为 <span class="arithmatex">\(\operatorname{clip}(2.5\sin(e_\psi),-1.8,1.8)\)</span>，通过监督学习拟合航向反馈律。种子 21 的 4,096 条开发样本划分为 3,276 条训练与 820 条验证；种子 22 的 1,024 条独立测试样本角速度 RMSE 为 <strong>0.0748 rad/s</strong>。速度由剩余距离和航向对准程度限制，再对线速度和神经网络输出角速度共同乘以热降额比例。</p>
+<p>路径横向误差取车体中心到离散参考路径的最小距离，RMSE 定义为：</p>
+<div class="arithmatex">\[
+E_{RMSE}=\sqrt{\frac{1}{N}\sum_{k=1}^{N}\min_j\|p_k-r_j\|_2^2}
+\]</div>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th style="text-align: right;">运行时间（秒）</th>
+<th style="text-align: right;">横向 RMSE（厘米）</th>
+<th style="text-align: right;">最大误差（厘米）</th>
+<th style="text-align: right;">最终目标距离（厘米）</th>
+<th>到达</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>圆弧</td>
+<td style="text-align: right;">21.07</td>
+<td style="text-align: right;">2.85</td>
+<td style="text-align: right;">4.29</td>
+<td style="text-align: right;">19.89</td>
+<td>是</td>
+</tr>
+<tr>
+<td>S形</td>
+<td style="text-align: right;">19.64</td>
+<td style="text-align: right;">4.80</td>
+<td style="text-align: right;">12.25</td>
+<td style="text-align: right;">19.92</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<p>终点判定为参考路径进度超过 90% 且距终点小于 20 cm。记录间隔为 0.1 秒，原始轨迹和汇总结果随曲线保存。</p>
+<p><img alt="给定路径与神经网络控制实测轨迹、横向误差" src="../../img/ground/motor_thermal_control/trajectory/trajectory_tracking.png" /></p>
+<h2 id="_6">算法流程与核心源码<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p>每次控制循环按以下顺序执行：</p>
+<ol>
+<li>MuJoCo 更新轮关节和车体状态；温度、电流、速度经传感器噪声模型形成观测。</li>
+<li>温升网络预测 5 秒后温度；迟滞控制器决定当前降额比例。</li>
+<li>根据位姿寻找参考路径进度与前视点，生成航向误差的正弦/余弦特征。</li>
+<li>航向网络预测角速度，与距离反馈得到的线速度共同执行降额。</li>
+<li>差速运动学将速度转为左右轮转速目标，关节速度误差产生限幅转矩，再推进物理仿真并记录数据。</li>
+</ol>
+<p><code>DifferentialDriveSimulation.step()</code> 根据轮距 0.32 m、轮半径 0.07 m 完成差速解算，通过 <code>mj_step</code> 计算接触动力学；转矩上限为 2.5 N·m。<code>MotorSensorModel.sample()</code> 对物理状态施加固定种子的测量噪声。<code>TemperaturePredictor.fit()</code> 只用训练子集计算标准化参数，并以小批量梯度下降更新两层权重；<code>predict()</code> 在推理时复用这些参数。<code>follow_path()</code> 持续读取观测、计算前视误差并调用网络输出角速度，达到终点后停止；未完成路径时主程序以非零状态退出。</p>
+<h2 id="_7">仿真步骤<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
+<h3 id="ubuntu-2204-ros-2-humble">Ubuntu 22.04 与 ROS 2 Humble<a class="headerlink" href="#ubuntu-2204-ros-2-humble" title="Permanent link">&para;</a></h3>
+<p>在仓库根目录安装依赖并构建：</p>
+<pre><code class="language-bash">sudo apt update
+sudo apt install -y python3-pip
+python3 -m pip install &quot;numpy&lt;2&quot; &quot;mujoco&gt;=3.2,&lt;4&quot; matplotlib pillow
+colcon build --merge-install --packages-select mujoco_motor_thermal_control
+source install/setup.bash
+</code></pre>
+<h3 id="mujoco_1">运行 MuJoCo 仿真<a class="headerlink" href="#mujoco_1" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash">python3 src/ground/mujoco_motor_thermal_control/main.py \
+  --steps 30000 --linear 0.75 --angular 0.4 --ambient 25 \
+  --csv output/motor_run.csv
+</code></pre>
+<p>程序运行 300 秒并在结束时输出小车位姿、速度和左右电机温度。时序 CSV 记录温度、电流、转矩、速度、平面位姿和航向角。</p>
+<h3 id="ros-2">启动 ROS 2 热控制节点<a class="headerlink" href="#ros-2" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash">ros2 launch mujoco_motor_thermal_control main.launch.py \
+  linear_limit_c:=35.0 release_c:=33.0 ambient_c:=25.0
+</code></pre>
+<p>另一个终端发布速度指令并检查输出：</p>
+<pre><code class="language-bash">ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
+  &quot;{linear: {x: 0.8}, angular: {z: 0.35}}&quot; -r 20
+ros2 topic echo /motor_thermal/left_temperature
+ros2 topic echo /motor_thermal/predicted_temperature
+ros2 topic echo /motor_thermal/speed_scale
+ros2 topic echo /motor_thermal/cmd_vel
+</code></pre>
+<h3 id="_8">多场景性能评价<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash">python3 -m evaluate_scenarios --steps 18000 \
+  --model src/ground/mujoco_motor_thermal_control/models/temperature_mlp.json \
+  --output docs/img/ground/motor_thermal_control/evaluation
+python3 -m mujoco_motor_thermal_control.plot_evaluation \
+  --summary docs/img/ground/motor_thermal_control/evaluation/scenario_summary.csv \
+  --curves docs/img/ground/motor_thermal_control/evaluation/scenario_curves.csv \
+  --output docs/img/ground/motor_thermal_control/evaluation/evaluation_curves.png
+</code></pre>
+<p>每种工况各运行 180 秒，并分别比较固定速度与预测降额。评价项包括最高电机温度、平均速度、行驶距离和降额时间占比。</p>
+<h3 id="launch">给定路径训练、测试与 launch<a class="headerlink" href="#launch" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash">python3 src/ground/mujoco_motor_thermal_control/main_trajectory.py --train \
+  --output docs/img/ground/motor_thermal_control/trajectory
+colcon build --merge-install --packages-select mujoco_motor_thermal_control
+source install/setup.bash
+ros2 launch mujoco_motor_thermal_control trajectory.launch.py
+</code></pre>
+<p>launch 默认读取随包安装的 <code>steering_mlp.json</code> 和 <code>temperature_mlp.json</code>，在 <code>/tmp/motor_thermal_trajectory</code> 写入轨迹、汇总 CSV、JSON 与性能图。训练开关只用于重新训练，日常 launch 直接加载模型。</p>
+<h2 id="_9">性能结果<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>工况</th>
+<th>策略</th>
+<th style="text-align: right;">最高电机温度（°C）</th>
+<th style="text-align: right;">平均速度（m/s）</th>
+<th style="text-align: right;">行驶距离（m）</th>
+<th style="text-align: right;">降额时间（%）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>常温直行</td>
+<td>固定速度</td>
+<td style="text-align: right;">32.072</td>
+<td style="text-align: right;">0.744</td>
+<td style="text-align: right;">133.976</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr>
+<td>常温直行</td>
+<td>预测降额</td>
+<td style="text-align: right;">32.053</td>
+<td style="text-align: right;">0.743</td>
+<td style="text-align: right;">133.825</td>
+<td style="text-align: right;">2.43</td>
+</tr>
+<tr>
+<td>常温转弯</td>
+<td>固定速度</td>
+<td style="text-align: right;">43.396</td>
+<td style="text-align: right;">0.752</td>
+<td style="text-align: right;">135.319</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr>
+<td>常温转弯</td>
+<td>预测降额</td>
+<td style="text-align: right;">41.787</td>
+<td style="text-align: right;">0.619</td>
+<td style="text-align: right;">111.439</td>
+<td style="text-align: right;">77.71</td>
+</tr>
+<tr>
+<td>高温转弯</td>
+<td>固定速度</td>
+<td style="text-align: right;">45.742</td>
+<td style="text-align: right;">0.706</td>
+<td style="text-align: right;">127.026</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr>
+<td>高温转弯</td>
+<td>预测降额</td>
+<td style="text-align: right;">42.472</td>
+<td style="text-align: right;">0.563</td>
+<td style="text-align: right;">101.387</td>
+<td style="text-align: right;">80.06</td>
+</tr>
+</tbody>
+</table>
+<p>转弯时，预测降额在速度降低的同时降低最高电机温度；高温转弯工况下降低 <strong>3.270 °C</strong>，平均速度下降 <strong>0.143 m/s</strong>。常温直行温度低于控制阈值，速度基本保持不变。逐时数据与汇总表分别保存在 <code>scenario_curves.csv</code> 和 <code>scenario_summary.csv</code>。</p>
+<p><img alt="三种场景下固定速度与预测降额的温度曲线和平均速度对比" src="../../img/ground/motor_thermal_control/evaluation/evaluation_curves.png" /></p>
+<h2 id="_10">源码结构<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/ground/mujoco_motor_thermal_control/main.py</code></td>
+<td>MuJoCo 主入口与 CSV 记录接口</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/thermal.py</code></td>
+<td>集总热模型与欧拉离散更新</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/simulation.py</code></td>
+<td>MuJoCo 差速车、驱动关节与仿真步进</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/sensors.py</code></td>
+<td>温度与电流观测噪声模型</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/dataset.py</code></td>
+<td>温升训练样本与解析目标生成</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/predictor.py</code></td>
+<td>MLP 训练、预测及 JSON 保存/加载</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/controller.py</code></td>
+<td>迟滞温控和速度降额比例</td>
+</tr>
+<tr>
+<td><code>mujoco_motor_thermal_control/motor_thermal_node.py</code></td>
+<td>ROS 2 温度监测和控制话题节点</td>
+</tr>
+<tr>
+<td><code>launch/main.launch.py</code></td>
+<td>ROS 2 启动入口</td>
+</tr>
+<tr>
+<td><code>evaluate_scenarios.py</code></td>
+<td>多场景性能评价与 CSV 导出</td>
+</tr>
+<tr>
+<td><code>render_demo.py</code></td>
+<td>MuJoCo 真实场景截图和 GIF 录制</td>
+</tr>
+</tbody>
+</table>
+<h2 id="docker">Docker 环境<a class="headerlink" href="#docker" title="Permanent link">&para;</a></h2>
+<h3 id="ubuntu-2004-ros-noetic">Ubuntu 20.04 / ROS Noetic<a class="headerlink" href="#ubuntu-2004-ros-noetic" title="Permanent link">&para;</a></h3>
+<p>在仓库根目录构建并运行：</p>
+<pre><code class="language-bash">docker build -t sirius185/motor-thermal:noetic \
+  -f src/ground/mujoco_motor_thermal_control/Dockerfile.noetic .
+docker run --rm sirius185/motor-thermal:noetic
+</code></pre>
+<p>镜像默认通过 <code>roslaunch</code> 启动 <code>main_noetic.launch</code> 和 <code>main_noetic.py</code>。Noetic 接口与 Humble 使用同名的 <code>/cmd_vel</code>、温度、预测温度、缩放比例和控制指令话题。Ubuntu 20.04.6、Python 3.8.10、MuJoCo 2.3.7、NumPy 1.24.4 环境中，10 项测试通过；实际收到温度消息，输入 0.5 m/s、0.2 rad/s 后收到非零速度输出。</p>
+<h3 id="ubuntu-2204-ros-2-humble_1">Ubuntu 22.04 / ROS 2 Humble<a class="headerlink" href="#ubuntu-2204-ros-2-humble_1" title="Permanent link">&para;</a></h3>
+<p>从仓库根目录构建 Humble 容器并运行测试：</p>
+<pre><code class="language-bash">docker build -t mujoco-motor-thermal:humble \
+  -f src/ground/mujoco_motor_thermal_control/Dockerfile .
+docker run --rm mujoco-motor-thermal:humble bash -lc \
+  &quot;source /opt/ros/humble/setup.bash &amp;&amp; source install/setup.bash &amp;&amp; \
+   colcon test --merge-install --return-code-on-test-failure --packages-select mujoco_motor_thermal_control &amp;&amp; \
+   colcon test-result --verbose&quot;
+</code></pre>
+<p>Ubuntu 22.04 + ROS 2 Humble 容器用于构建、单元测试和 launch 验证；ROS 2 节点发布温度、预测值、速度缩放和速度指令话题。轨迹回归测试同时验证两条路径到达、误差上限和速度缩放范围。</p>
+<p>Humble 共 10 项测试通过，温度话题收到 25.068 °C 的实测消息。四个前序阶段分别通过 3、4、6、7 项测试，独立 launch 均成功启动。模型版本与系统版本分开固定：Noetic 使用支持 Python 3.8 的 MuJoCo 2.3.7，Humble 使用 MuJoCo 3.17。</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../../js/jquery-3.6.0.min.js"></script>
+        <script src="../../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "../..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../../js/base.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
